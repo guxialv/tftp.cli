@@ -1,0 +1,73 @@
+using System.IO;
+using System.Threading;
+
+namespace Tftp
+{
+    sealed class TftpLocalReadTransfer : TftpTransfer
+    {
+        private ushort _blockNumber;
+        public TftpLocalReadTransfer(TftpConfiguration config, Stream targetStream) :
+            base(config, targetStream, new TftpLocalReadTransferStateMachine())
+        {
+            _blockNumber = 0;
+        }
+
+        protected override void OnRequest(string remoteFileName, TftpTransferMode mode)
+        {
+            var transferSize = this._options.TransferSize = 0;
+            var options = TftpTransferOptions.ToDictionary(_config.BlockSize, _config.TimeoutSeconds, transferSize);
+            Exec(TftpCommandCode.ReadRequest, new TftpReadRequestPacket(remoteFileName, mode, options));
+        }
+
+        protected override void OnDataTransferring()
+        {
+            Exec(TftpCommandCode.Acknowledgment, new TftpAckPacket(_blockNumber));
+        }
+
+        protected override void OnDataTransferCompleted()
+        {
+            _connection.Send(new TftpAckPacket(_blockNumber)); // send last ack
+        }
+
+        protected override void OnResponseProcess(TftpPacket packet)
+        {
+            if (packet is TftpOptionsAckPacket oack)
+            {
+                OnOptionsNegotiating(oack);
+            }
+            else if (packet is TftpDataPacket data)
+            {
+                OnDataReceived(data);
+            }
+            else if (packet is TftpErrorPacket error)
+            {
+                OnError(error);
+            }
+        }
+
+        private void OnDataReceived(TftpDataPacket data)
+        {
+            if (unchecked((ushort)(_blockNumber + 1)) != data.BlockNumber)
+            {
+                Thread.Sleep(10);
+                return; // just ignore
+            }
+
+            if (data.Count > 0)
+            {
+                _stream.Write(data.Data, data.Offset, data.Count);
+            }
+
+            _blockNumber = data.BlockNumber;
+            _transferredBlocks++;
+            _transferredBytes += data.Count;
+
+            if (data.Count < _options.BlockSize /*|| _transferredBytes >= _options.TransferSize*/)
+            {
+                _isCompleted = true;
+            }
+
+            OnProgress();
+        }
+    }
+}
