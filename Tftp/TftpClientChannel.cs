@@ -42,7 +42,6 @@ namespace Tftp
                 transfer.Progress += OnProgress;
                 transfer.Error += OnError;
                 var result = transfer.Start(remoteFileName, mode, token);
-                Thread.Sleep(500);
                 transfer.Progress -= OnProgress;
                 transfer.Error -= OnError;
 
@@ -66,7 +65,6 @@ namespace Tftp
                 transfer.Progress += OnProgress;
                 transfer.Error += OnError;
                 var result = transfer.Start(remoteFileName, mode, token);
-                Thread.Sleep(500);
                 transfer.Progress -= OnProgress;
                 transfer.Error -= OnError;
 

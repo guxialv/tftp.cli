@@ -1,5 +1,4 @@
 using System.IO;
-using System.Threading;
 
 namespace Tftp
 {
@@ -47,10 +46,10 @@ namespace Tftp
 
         private void OnDataReceived(TftpDataPacket data)
         {
+            // Ignore duplicate or out-of-order packets
             if (unchecked((ushort)(_blockNumber + 1)) != data.BlockNumber)
             {
-                Thread.Sleep(10);
-                return; // just ignore
+                return;
             }
 
             if (data.Count > 0)

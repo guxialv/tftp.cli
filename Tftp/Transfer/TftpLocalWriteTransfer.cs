@@ -12,7 +12,7 @@ namespace Tftp
         {
             _blockNumber = 0;
             _sendLastPack = false;
-            _buffer = new byte[config.BlockSize * 2];
+            _buffer = new byte[config.BlockSize];
         }
 
         protected override void OnRequest(string remoteFileName, TftpTransferMode mode)
@@ -60,9 +60,10 @@ namespace Tftp
 
         private TftpDataPacket ReadNextBlock()
         {
+            // Reallocate buffer only if block size changes during transfer
             if (_buffer.Length < _options.BlockSize)
             {
-                _buffer = new byte[_options.BlockSize * 2];
+                _buffer = new byte[_options.BlockSize];
             }
 
             var count = _stream.Read(_buffer, 0, _options.BlockSize);
