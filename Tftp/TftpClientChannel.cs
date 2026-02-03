@@ -41,6 +41,8 @@ namespace Tftp
             {
                 transfer.Progress += OnProgress;
                 transfer.Error += OnError;
+                // Start() is synchronous and blocks until transfer completes
+                // All events are raised synchronously, so no race condition when unsubscribing
                 var result = transfer.Start(remoteFileName, mode, token);
                 transfer.Progress -= OnProgress;
                 transfer.Error -= OnError;
@@ -64,6 +66,8 @@ namespace Tftp
             {
                 transfer.Progress += OnProgress;
                 transfer.Error += OnError;
+                // Start() is synchronous and blocks until transfer completes
+                // All events are raised synchronously, so no race condition when unsubscribing
                 var result = transfer.Start(remoteFileName, mode, token);
                 transfer.Progress -= OnProgress;
                 transfer.Error -= OnError;

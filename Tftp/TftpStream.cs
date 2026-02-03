@@ -85,7 +85,7 @@ namespace Tftp
             long remainingBytes = _stream.Length - _stream.Position;
             
             // If no remaining bytes, return empty array
-            if (remainingBytes <= 0)
+            if (remainingBytes == 0)
                 return Array.Empty<byte>();
             
             // Allocate buffer with exact size needed
