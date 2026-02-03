@@ -30,17 +30,17 @@ namespace Tftp
 
         protected override void OnResponseProcess(TftpPacket packet)
         {
-            if (packet is TftpOptionsAckPacket oack)
+            switch (packet)
             {
-                OnOptionsNegotiating(oack);
-            }
-            else if (packet is TftpDataPacket data)
-            {
-                OnDataReceived(data);
-            }
-            else if (packet is TftpErrorPacket error)
-            {
-                OnError(error);
+                case TftpOptionsAckPacket oack:
+                    OnOptionsNegotiating(oack);
+                    break;
+                case TftpDataPacket data:
+                    OnDataReceived(data);
+                    break;
+                case TftpErrorPacket error:
+                    OnError(error);
+                    break;
             }
         }
 

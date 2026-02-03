@@ -36,19 +36,20 @@ namespace Tftp
                 _connection.Send(dataPacket);// Send last block
             }
         }
+
         protected override void OnResponseProcess(TftpPacket packet)
         {
-            if (packet is TftpOptionsAckPacket oack)
+            switch (packet)
             {
-                OnOptionsNegotiating(oack);
-            }
-            else if (packet is TftpAckPacket ack)
-            {
-                OnAck(ack);
-            }
-            else if (packet is TftpErrorPacket error)
-            {
-                OnError(error);
+                case TftpOptionsAckPacket oack:
+                    OnOptionsNegotiating(oack);
+                    break;
+                case TftpAckPacket ack:
+                    OnAck(ack);
+                    break;
+                case TftpErrorPacket error:
+                    OnError(error);
+                    break;
             }
         }
 
