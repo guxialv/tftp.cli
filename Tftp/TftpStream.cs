@@ -8,6 +8,10 @@ namespace Tftp
 {
     class TftpStream : IDisposable
     {
+        // Initial capacity for reading TFTP strings (filenames, options, modes)
+        // TFTP strings are typically short: filenames (~20-50 chars), mode names (5-10 chars)
+        private const int DefaultStringBuilderCapacity = 32;
+        
         private readonly MemoryStream _stream;
 
         public TftpStream()
@@ -78,21 +82,33 @@ namespace Tftp
 
         public byte[] ReadBytes()
         {
-            long maxBytes = _stream.Length - _stream.Position;
-            byte[] buffer = new byte[maxBytes];
+            long remainingBytes = _stream.Length - _stream.Position;
+            
+            // If no remaining bytes, return empty array
+            if (remainingBytes == 0)
+                return Array.Empty<byte>();
+            
+            // Allocate buffer with exact size needed
+            byte[] buffer = new byte[remainingBytes];
             int bytesRead = _stream.Read(buffer, 0, buffer.Length);
 
             if (bytesRead == -1)
                 throw new IOException();
 
-            Array.Resize(ref buffer, bytesRead);
+            // Only resize if we didn't read all expected bytes
+            if (bytesRead < remainingBytes)
+            {
+                Array.Resize(ref buffer, bytesRead);
+            }
+            
             return buffer;
         }
 
         public string ReadNullTerminatedString()
         {
             byte b;
-            StringBuilder sb = new StringBuilder();
+            // Pre-allocate capacity to reduce reallocations for typical TFTP strings
+            StringBuilder sb = new StringBuilder(DefaultStringBuilderCapacity);
             while ((b = ReadByte()) > 0)
             {
                 sb.Append((char)b);
