@@ -88,12 +88,9 @@ namespace Tftp
             return dict;
         }
 
-        private static bool ValidateBlockSize(ushort value) =>
-            value >= TftpConfiguration.MIN_BLOCK_SIZE && value <= TftpConfiguration.MAX_BLOCK_SIZE;
-        private static bool ValidateTimeout(byte value) =>
-            value >= TftpConfiguration.MIN_TIMEOUT_SECS && value <= TftpConfiguration.MAX_TIMEOUT_SECS;
-        private static bool ValidateTransferSize(long value) =>
-         value >= 0;
+        private static bool ValidateBlockSize(ushort value) => value >= TftpConfiguration.MIN_BLOCK_SIZE && value <= TftpConfiguration.MAX_BLOCK_SIZE;
+        private static bool ValidateTimeout(byte value) => value >= TftpConfiguration.MIN_TIMEOUT_SECS && value <= TftpConfiguration.MAX_TIMEOUT_SECS;
+        private static bool ValidateTransferSize(long value) => value >= 0;
 
     }
 }

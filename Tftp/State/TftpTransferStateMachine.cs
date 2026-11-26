@@ -29,8 +29,8 @@ namespace Tftp
 
     abstract class TftpTransferStateMachine
     {
-        protected readonly Dictionary<TftpTransferState, Dictionary<TftpCommandCode, TftpTransferState>> _stateTransformDict = new Dictionary<TftpTransferState, Dictionary<TftpCommandCode, TftpTransferState>>();
-        protected readonly Dictionary<TftpCommandCode, HashSet<TftpOpCode>> _execAcceptOpDict = new Dictionary<TftpCommandCode, HashSet<TftpOpCode>>();
+        protected Dictionary<TftpTransferState, Dictionary<TftpCommandCode, TftpTransferState>> StateTransformDict { get; } = new Dictionary<TftpTransferState, Dictionary<TftpCommandCode, TftpTransferState>>();
+        protected Dictionary<TftpCommandCode, HashSet<TftpOpCode>> ExecAcceptOpDict { get; } = new Dictionary<TftpCommandCode, HashSet<TftpOpCode>>();
 
         private TftpTransferState _CurrentState = TftpTransferState.Idle;
 
@@ -102,7 +102,7 @@ namespace Tftp
 
         private bool CanReturn(TftpCommandCode commandCode, TftpPacket response)
         {
-            if (_execAcceptOpDict.TryGetValue(commandCode, out var set) && set.Contains(response.OpCode))
+            if (ExecAcceptOpDict.TryGetValue(commandCode, out var set) && set.Contains(response.OpCode))
             {
                 return true;
             }
@@ -111,7 +111,7 @@ namespace Tftp
 
         public bool CanExecute(TftpTransferState currentState, TftpCommandCode commandCode)
         {
-            if (_stateTransformDict.TryGetValue(currentState, out var map) && map.ContainsKey(commandCode))
+            if (StateTransformDict.TryGetValue(currentState, out var map) && map.ContainsKey(commandCode))
             {
                 return true;
             }
@@ -121,7 +121,7 @@ namespace Tftp
 
         private TftpTransferState GetNextDataState(TftpTransferState currentState, TftpCommandCode commandCode)
         {
-            if (_stateTransformDict[currentState].TryGetValue(commandCode, out var expectNextState) == false)
+            if (StateTransformDict[currentState].TryGetValue(commandCode, out var expectNextState) == false)
             {
                 throw new Exception($"{currentState} - Invalid Command Execution. OpCode = {commandCode.Code}, OpName = {commandCode.Name}");
             }
@@ -135,29 +135,28 @@ namespace Tftp
         public TftpLocalReadTransferStateMachine() : base()
         {
 
-            _stateTransformDict.Add(TftpTransferState.Idle, new Dictionary<TftpCommandCode, TftpTransferState>()
+            StateTransformDict.Add(TftpTransferState.Idle, new Dictionary<TftpCommandCode, TftpTransferState>()
             {
                 { TftpCommandCode.ReadRequest,  TftpTransferState.RW_Request },
             });
 
-            _stateTransformDict.Add(TftpTransferState.RW_Request, new Dictionary<TftpCommandCode, TftpTransferState>()
+            StateTransformDict.Add(TftpTransferState.RW_Request, new Dictionary<TftpCommandCode, TftpTransferState>()
             {
                 { TftpCommandCode.Acknowledgment,  TftpTransferState.RW_DataTransfer },
             });
 
-            _stateTransformDict.Add(TftpTransferState.RW_DataTransfer, new Dictionary<TftpCommandCode, TftpTransferState>()
+            StateTransformDict.Add(TftpTransferState.RW_DataTransfer, new Dictionary<TftpCommandCode, TftpTransferState>()
             {
                 { TftpCommandCode.Acknowledgment,  TftpTransferState.RW_DataTransfer },
                 { TftpCommandCode.Error,  TftpTransferState.Error },
             });
 
-            _stateTransformDict.Add(TftpTransferState.Error, new Dictionary<TftpCommandCode, TftpTransferState>());
-            _stateTransformDict.Add(TftpTransferState.Busy, new Dictionary<TftpCommandCode, TftpTransferState>());
+            StateTransformDict.Add(TftpTransferState.Error, new Dictionary<TftpCommandCode, TftpTransferState>());
+            StateTransformDict.Add(TftpTransferState.Busy, new Dictionary<TftpCommandCode, TftpTransferState>());
 
-
-            _execAcceptOpDict.Add(TftpCommandCode.ReadRequest, new HashSet<TftpOpCode>(new[] { TftpOpCode.OACK, TftpOpCode.DATA, TftpOpCode.ERROR }));
-            _execAcceptOpDict.Add(TftpCommandCode.Acknowledgment, new HashSet<TftpOpCode>(new[] { TftpOpCode.DATA, TftpOpCode.ERROR }));
-            _execAcceptOpDict.Add(TftpCommandCode.Error, new HashSet<TftpOpCode>(new[] { TftpOpCode.ACK, TftpOpCode.ERROR }));
+            ExecAcceptOpDict.Add(TftpCommandCode.ReadRequest, new HashSet<TftpOpCode>(new[] { TftpOpCode.OACK, TftpOpCode.DATA, TftpOpCode.ERROR }));
+            ExecAcceptOpDict.Add(TftpCommandCode.Acknowledgment, new HashSet<TftpOpCode>(new[] { TftpOpCode.DATA, TftpOpCode.ERROR }));
+            ExecAcceptOpDict.Add(TftpCommandCode.Error, new HashSet<TftpOpCode>(new[] { TftpOpCode.ACK, TftpOpCode.ERROR }));
         }
     }
 
@@ -167,29 +166,28 @@ namespace Tftp
         public TftpLocalWriteTransferStateMachine() : base()
         {
 
-            _stateTransformDict.Add(TftpTransferState.Idle, new Dictionary<TftpCommandCode, TftpTransferState>()
+            StateTransformDict.Add(TftpTransferState.Idle, new Dictionary<TftpCommandCode, TftpTransferState>()
             {
                 { TftpCommandCode.WriteRequest,  TftpTransferState.RW_Request },
             });
 
-            _stateTransformDict.Add(TftpTransferState.RW_Request, new Dictionary<TftpCommandCode, TftpTransferState>()
+            StateTransformDict.Add(TftpTransferState.RW_Request, new Dictionary<TftpCommandCode, TftpTransferState>()
             {
                 { TftpCommandCode.Data,  TftpTransferState.RW_DataTransfer },
             });
 
-            _stateTransformDict.Add(TftpTransferState.RW_DataTransfer, new Dictionary<TftpCommandCode, TftpTransferState>()
+            StateTransformDict.Add(TftpTransferState.RW_DataTransfer, new Dictionary<TftpCommandCode, TftpTransferState>()
             {
                 { TftpCommandCode.Data,  TftpTransferState.RW_DataTransfer },
                 { TftpCommandCode.Error,  TftpTransferState.Error },
             });
 
-            _stateTransformDict.Add(TftpTransferState.Error, new Dictionary<TftpCommandCode, TftpTransferState>());
-            _stateTransformDict.Add(TftpTransferState.Busy, new Dictionary<TftpCommandCode, TftpTransferState>());
+            StateTransformDict.Add(TftpTransferState.Error, new Dictionary<TftpCommandCode, TftpTransferState>());
+            StateTransformDict.Add(TftpTransferState.Busy, new Dictionary<TftpCommandCode, TftpTransferState>());
 
-
-            _execAcceptOpDict.Add(TftpCommandCode.WriteRequest, new HashSet<TftpOpCode>(new[] { TftpOpCode.OACK, TftpOpCode.ACK, TftpOpCode.ERROR }));
-            _execAcceptOpDict.Add(TftpCommandCode.Data, new HashSet<TftpOpCode>(new[] { TftpOpCode.ACK, TftpOpCode.ERROR }));
-            _execAcceptOpDict.Add(TftpCommandCode.Error, new HashSet<TftpOpCode>(new[] { TftpOpCode.ACK, TftpOpCode.ERROR }));
+            ExecAcceptOpDict.Add(TftpCommandCode.WriteRequest, new HashSet<TftpOpCode>(new[] { TftpOpCode.OACK, TftpOpCode.ACK, TftpOpCode.ERROR }));
+            ExecAcceptOpDict.Add(TftpCommandCode.Data, new HashSet<TftpOpCode>(new[] { TftpOpCode.ACK, TftpOpCode.ERROR }));
+            ExecAcceptOpDict.Add(TftpCommandCode.Error, new HashSet<TftpOpCode>(new[] { TftpOpCode.ACK, TftpOpCode.ERROR }));
         }
     }
 }

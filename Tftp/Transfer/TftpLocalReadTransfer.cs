@@ -13,9 +13,10 @@ namespace Tftp
 
         protected override void OnRequest(string remoteFileName, TftpTransferMode mode)
         {
-            var transferSize = this._options.TransferSize = 0;
-            var options = TftpTransferOptions.ToDictionary(_config.BlockSize, _config.TimeoutSeconds, transferSize);
+            var transferSize = this.Options.TransferSize = 0;
+            var options = TftpTransferOptions.ToDictionary(Config.BlockSize, Config.TimeoutSeconds, transferSize);
             Exec(TftpCommandCode.ReadRequest, new TftpReadRequestPacket(remoteFileName, mode, options));
+            Connection.TimeoutSeconds = Options.Timeout;
         }
 
         protected override void OnDataTransferring()
@@ -25,7 +26,7 @@ namespace Tftp
 
         protected override void OnDataTransferCompleted()
         {
-            _connection.Send(new TftpAckPacket(_blockNumber)); // send last ack
+            Connection.Send(new TftpAckPacket(_blockNumber)); // send last ack
         }
 
         protected override void OnResponseProcess(TftpPacket packet)
@@ -54,18 +55,17 @@ namespace Tftp
 
             if (data.Count > 0)
             {
-                _stream.Write(data.Data, data.Offset, data.Count);
+                Stream.Write(data.Data, data.Offset, data.Count);
+            }
+
+            if (data.Count < Options.BlockSize /*|| _transferredBytes >= _options.TransferSize*/)
+            {
+                IsCompleted = true;
             }
 
             _blockNumber = data.BlockNumber;
-            _transferredBlocks++;
-            _transferredBytes += data.Count;
-
-            if (data.Count < _options.BlockSize /*|| _transferredBytes >= _options.TransferSize*/)
-            {
-                _isCompleted = true;
-            }
-
+            TransferredBlocks++;
+            TransferredBytes += data.Count;
             OnProgress();
         }
     }

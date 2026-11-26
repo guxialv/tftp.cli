@@ -9,10 +9,11 @@ namespace Tftp
         //const uint IOC_VENDOR = 0x18000000;
         //const uint SIO_UDP_CONNRESET = IOC_IN | IOC_VENDOR | 12;
 
-        private EndPoint _LocalEndPoint;
-        private EndPoint _RemoteEndPoint;
-        private Socket _socket;
+        private readonly Socket _socket;
         private readonly byte[] _receiveBuffer;
+        private readonly EndPoint _LocalEndPoint;
+
+        private EndPoint _RemoteEndPoint;
 
         public IPEndPoint RemoteEndPoint
         {
@@ -74,8 +75,7 @@ namespace Tftp
 
         public void Dispose()
         {
-            _socket?.Dispose();
-            _socket = null;
+            _socket.Dispose();
         }
     }
 }

@@ -8,7 +8,7 @@ namespace Tftp
     public class TftpClientChannel : ITftpClientChannel
     {
         private bool _isServerReady;
-        private TftpConfiguration _config;
+        private readonly TftpConfiguration _config;
         public bool IsServerReady => _isServerReady;
         public TftpClientChannel(string remoteIp) :
             this(new TftpConfiguration() { RemoteIp = remoteIp })
@@ -19,7 +19,6 @@ namespace Tftp
         public TftpClientChannel(TftpConfiguration config)
         {
             _config = config;
-            _isServerReady = true;
         }
 
         public bool Download(string remoteFileName, string localFullFileName, TftpTransferMode mode = TftpTransferMode.octet, CancellationToken token = default)
@@ -37,13 +36,14 @@ namespace Tftp
 
         public bool Download(string remoteFileName, Stream targetStream, TftpTransferMode mode = TftpTransferMode.octet, CancellationToken token = default)
         {
+            _isServerReady = true;
+
             using (var transfer = new TftpLocalReadTransfer(_config, targetStream))
             {
                 transfer.Progress += OnProgress;
                 transfer.Error += OnError;
-                // Start() is synchronous and blocks until transfer completes
-                // All events are raised synchronously, so no race condition when unsubscribing
                 var result = transfer.Start(remoteFileName, mode, token);
+                Thread.Sleep(10); // Ensure file handle released
                 transfer.Progress -= OnProgress;
                 transfer.Error -= OnError;
 
@@ -62,13 +62,14 @@ namespace Tftp
 
         public bool Upload(string remoteFileName, Stream localFileStream, TftpTransferMode mode = TftpTransferMode.octet, CancellationToken token = default)
         {
+            _isServerReady = true;
+
             using (var transfer = new TftpLocalWriteTransfer(_config, localFileStream))
             {
                 transfer.Progress += OnProgress;
                 transfer.Error += OnError;
-                // Start() is synchronous and blocks until transfer completes
-                // All events are raised synchronously, so no race condition when unsubscribing
                 var result = transfer.Start(remoteFileName, mode, token);
+                Thread.Sleep(10); // Ensure file handle released
                 transfer.Progress -= OnProgress;
                 transfer.Error -= OnError;
 

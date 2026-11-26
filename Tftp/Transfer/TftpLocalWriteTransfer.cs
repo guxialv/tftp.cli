@@ -17,9 +17,10 @@ namespace Tftp
 
         protected override void OnRequest(string remoteFileName, TftpTransferMode mode)
         {
-            var transferSize = this._options.TransferSize = _stream.Length;
-            var options = TftpTransferOptions.ToDictionary(_config.BlockSize, _config.TimeoutSeconds, transferSize);
+            var transferSize = this.Options.TransferSize = Stream.Length;
+            var options = TftpTransferOptions.ToDictionary(Config.BlockSize, Config.TimeoutSeconds, transferSize);
             Exec(TftpCommandCode.WriteRequest, new TftpWriteRequestPacket(remoteFileName, mode, options));
+            Connection.TimeoutSeconds = Options.Timeout;
         }
 
         protected override void OnDataTransferring()
@@ -33,7 +34,7 @@ namespace Tftp
             {
                 _blockNumber++;
                 var dataPacket = new TftpDataPacket(_blockNumber, _buffer, 0, 0);
-                _connection.Send(dataPacket);// Send last block
+                Connection.Send(dataPacket);// Send last block
             }
         }
 
@@ -62,20 +63,20 @@ namespace Tftp
         private TftpDataPacket ReadNextBlock()
         {
             // Reallocate buffer only if block size changes during transfer
-            if (_buffer.Length < _options.BlockSize)
+            if (_buffer.Length < Options.BlockSize)
             {
-                _buffer = new byte[_options.BlockSize];
+                _buffer = new byte[Options.BlockSize];
             }
 
-            var count = _stream.Read(_buffer, 0, _options.BlockSize);
+            var count = Stream.Read(_buffer, 0, Options.BlockSize);
             _blockNumber++;
-            _transferredBlocks++;
-            _transferredBytes += count;
+            TransferredBlocks++;
+            TransferredBytes += count;
 
-            if (count < _options.BlockSize || _transferredBytes >= _options.TransferSize)
+            if (count < Options.BlockSize /*|| TransferredBytes >= Options.TransferSize*/)
             {
-                _isCompleted = true;
-                _sendLastPack = count == _options.BlockSize;
+                IsCompleted = true;
+                _sendLastPack = count == Options.BlockSize;
             }
 
             OnProgress();

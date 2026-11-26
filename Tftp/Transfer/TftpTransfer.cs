@@ -6,51 +6,51 @@ namespace Tftp
 {
     abstract class TftpTransfer : ITftpTransfer
     {
-        protected int? _tid;
-        protected byte _incorrectTIDTimes;
+        private int? _tid;
+        private byte _incorrectTIDTimes;
 
-        protected bool _isFault;
-        protected bool _isCanceled;
-        protected bool _isCompleted;
+        private bool _isFault;
+        private bool _isCanceled;
 
-        protected long _transferredBytes;
-        protected long _transferredBlocks;
+        protected bool IsCompleted { get; set; }
+        protected long TransferredBytes { get; set; }
+        protected long TransferredBlocks { get; set; }
 
-        protected Stream _stream { get; }
-        protected ITftpConnection _connection { get; }
-        protected TftpConfiguration _config { get; }
-        protected TftpTransferOptions _options { get; }
-        protected TftpTransferStateMachine _stateMachine { get; }
+        protected Stream Stream { get; }
+        protected ITftpConnection Connection { get; }
+        protected TftpConfiguration Config { get; }
+        protected TftpTransferOptions Options { get; }
+        protected TftpTransferStateMachine StateMachine { get; }
 
         public TftpTransfer(TftpConfiguration config, Stream stream, TftpTransferStateMachine stateMachine)
         {
             _tid = null;
-            _config = config;
-            _stream = stream;
-            _stateMachine = stateMachine;
-            _connection = new TftpUdpClient(config);
-            _options = new TftpTransferOptions();
+            Config = config;
+            Stream = stream;
+            StateMachine = stateMachine;
+            Connection = new TftpUdpClient(config);
+            Options = new TftpTransferOptions();
         }
 
         public bool Start(string remoteFileName, TftpTransferMode mode, CancellationToken token)
         {
             _isFault = false;
             _isCanceled = false;
-            _isCompleted = false;
+            IsCompleted = false;
 
             _incorrectTIDTimes = 0;
 
-            _transferredBytes = 0;
-            _transferredBlocks = 0;
+            TransferredBytes = 0;
+            TransferredBlocks = 0;
 
             try
             {
                 OnRequest(remoteFileName, mode);
 
                 // Set TID
-                _tid = _connection.RemoteEndPoint.Port;
+                _tid = Connection.RemoteEndPoint.Port;
 
-                while (_isCompleted == false && _isFault == false)
+                while (IsCompleted == false && _isFault == false)
                 {
                     if (token.IsCancellationRequested)
                     {
@@ -60,7 +60,7 @@ namespace Tftp
                     OnDataTransferring();
                 }
 
-                if (_isCompleted)
+                if (IsCompleted)
                 {
                     OnDataTransferCompleted();
                 }
@@ -70,7 +70,7 @@ namespace Tftp
                 OnError(ex);
             }
 
-            return _isCompleted == true && _isFault == false && _isCanceled == false;
+            return IsCompleted == true && _isFault == false && _isCanceled == false;
         }
 
         protected abstract void OnResponseProcess(TftpPacket packet);
@@ -81,19 +81,18 @@ namespace Tftp
         protected void OnDataTransferCanceled()
         {
             _isCanceled = true;
-            _connection.Send(TftpErrorPacket.Undefined);
+            Connection.Send(TftpErrorPacket.Undefined);
             OnError("Transfer canceled by user");
         }
 
         protected void OnOptionsNegotiating(TftpOptionsAckPacket oack)
         {
-            _options.Negotiate(oack.Options);
-            _connection.TimeoutSeconds = _options.Timeout;
+            Options.Negotiate(oack.Options);
         }
 
         protected void Exec(TftpCommandCode code, TftpPacket request)
         {
-            var response = _stateMachine.Exec(code, request, (req) => _connection.Send(req).Receive());
+            var response = StateMachine.Exec(code, request, (req) => Connection.Send(req).Receive());
 
             if (ValidateTID() == false)
             {
@@ -104,7 +103,7 @@ namespace Tftp
 
         private bool ValidateTID()
         {
-            var isValid = _tid == null || _tid == _connection.RemoteEndPoint.Port;
+            var isValid = _tid == null || _tid == Connection.RemoteEndPoint.Port;
             if (isValid == false)
             {
                 _incorrectTIDTimes++;
@@ -125,7 +124,7 @@ namespace Tftp
         public event EventHandler<TftpTransferProgressEventArgs> Progress;
         protected void OnProgress()
         {
-            Progress?.Invoke(this, new TftpTransferProgressEventArgs(_transferredBlocks, _transferredBytes, _options.TransferSize));
+            Progress?.Invoke(this, new TftpTransferProgressEventArgs(TransferredBlocks, TransferredBytes, Options.TransferSize));
         }
 
         public event EventHandler<TftpTransferErrorEventArgs> Error;
@@ -153,8 +152,8 @@ namespace Tftp
             {
                 if (disposing)
                 {
-                    _stream.Dispose();
-                    _connection.Dispose();
+                    Stream.Dispose();
+                    Connection.Dispose();
                 }
 
                 _isDisposed = true;
